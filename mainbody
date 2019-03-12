@@ -1,0 +1,192 @@
+//1、添加依赖（注意依赖间的冲突）
+<dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.16.20</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.6.8</version>
+        </dependency>
+        <dependency>
+            <groupId>aopalliance</groupId>
+            <artifactId>aopalliance</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-expression</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aop</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>dom4j</groupId>
+            <artifactId>dom4j</artifactId>
+            <version>1.6.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>4.2.3.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+//2、entity、service、dao
+@Setter
+@Getter
+@ToString
+public class Employee {
+    private String name;
+    private String password;
+}
+public interface EmployeeService {
+    void save(Employee employee);
+    void update(Employee employee);
+}
+public class EmployeeServiceImpl implements EmployeeService {
+    @Autowired
+    private EmployeeDao employeeDao;
+    @Override
+    public void save(Employee employee) {
+//                int i = 10/0;
+                employeeDao.save();
+    }
+    @Override
+    public void update(Employee employee) {
+        employeeDao.update();
+    }
+}
+public class EmployeeDao {
+    public void save() {
+        System.out.println("dao层保存方法。。。");
+    }
+    public void update() {
+        System.out.println("dao层更新方法。。。");
+    }
+}
+//3、切面
+public class TransactionManager {
+    public void begin() {
+        System.out.println("开启事务。。。");
+    }
+    public void commit() {
+        System.out.println("提交事务。。。");
+    }
+    public void rollback(Exception tx) {
+        System.out.println("回滚。。。");
+    }
+    public Object around(ProceedingJoinPoint proceed) {
+        Object retval=null;
+        System.out.println("执行环绕方法");
+        try {
+            retval=proceed.proceed();
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+        }
+        return retval;
+    }
+}
+4、xml配置
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+       ">
+    <bean id="service" class="com.xuexi.aop.service.EmployeeServiceImpl" >
+        <!--<property name="employeeDao" ref="dao"></property>-->
+    </bean>
+    <bean id="dao" class="com.xuexi.aop.dao.EmployeeDao"></bean>
+    <!--配置事务对象 what -->
+    <bean id="txManager" class="com.xuexi.aop.txtool.TransactionManager"></bean>
+    <aop:config>
+        <!--配置什么地方切 -->
+        <aop:pointcut id="txPonitCut" expression="execution(* com.xuexi.aop.service.EmployeeService.*(..))"></aop:pointcut>
+        <!-- 切面 -->
+        <aop:aspect ref="txManager">
+            <aop:before method="begin" pointcut-ref="txPonitCut"></aop:before>
+            <aop:after-throwing method="rollback" pointcut-ref="txPonitCut" throwing="tx"></aop:after-throwing>
+            <aop:around method="around" pointcut-ref="txPonitCut"></aop:around>
+        </aop:aspect>
+    </aop:config>
+</beans>
+//5、测试
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = "classpath:AOPTest.xml")
+public class AopTest {
+    @Autowired
+    private EmployeeService employeeService;
+//    private ApplicationContext ac;
+    @Test
+    public void test01() {
+//        EmployeeService service = (EmployeeService)ac.getBean("service");
+        employeeService.save(new Employee());
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
